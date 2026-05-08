@@ -1,5 +1,4 @@
 # Environment
-.env
 
 # Python
 venv/
@@ -10,3 +9,4 @@ __pycache__/
 # Node
 node_modules/
 dist/
+config.bat
