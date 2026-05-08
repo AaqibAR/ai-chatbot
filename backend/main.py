@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
-from models import Conversation
-from schemas import MessageInput, MessageResponse
+from models import Conversation, Package, FAQ
+from schemas import MessageInput, MessageResponse, PackageSchema, FAQSchema
 from chatbot import get_response
 from datetime import datetime
+from typing import List
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,9 +26,8 @@ def root():
 @app.post("/chat", response_model=MessageResponse)
 def chat(input: MessageInput, db: Session = Depends(get_db)):
     user_message = input.message
-    bot_response = get_response(user_message)
+    bot_response = get_response(user_message, db)
 
-    # Save to database
     conversation = Conversation(
         user_input=user_message,
         bot_response=bot_response
@@ -36,3 +36,16 @@ def chat(input: MessageInput, db: Session = Depends(get_db)):
     db.commit()
 
     return MessageResponse(response=bot_response, timestamp=datetime.now())
+
+@app.get("/packages", response_model=List[PackageSchema])
+def get_packages(db: Session = Depends(get_db)):
+    return db.query(Package).all()
+
+@app.get("/faqs", response_model=List[FAQSchema])
+def get_faqs(db: Session = Depends(get_db)):
+    return db.query(FAQ).all()
+
+@app.get("/conversations")
+def get_conversations(db: Session = Depends(get_db)):
+    conversations = db.query(Conversation).order_by(Conversation.timestamp.desc()).limit(50).all()
+    return conversations
