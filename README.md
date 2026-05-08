@@ -52,12 +52,6 @@ python -m spacy download en_core_web_sm
 ### 3. Configure environment
 Copy `.env.example` to `.env` and update with your PostgreSQL credentials:
 
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=chatbot_db
-DB_USER=your_username
-DB_PASSWORD=your_password
-
 ### 4. Create database and seed data
 ```bash
 psql postgres -c "CREATE DATABASE chatbot_db;"
@@ -101,21 +95,3 @@ Visit `http://localhost:5173`
 - **packages** — Travel package details
 - **faqs** — Frequently asked questions
 - **conversations** — Logs all user interactions
-
-## Project Structure
-
-ai-chatbot/
-├── backend/
-│   ├── main.py         # FastAPI app and routes
-│   ├── chatbot.py      # NLP inference engine
-│   ├── database.py     # PostgreSQL connection
-│   ├── models.py       # Database models
-│   ├── schemas.py      # Request/response schemas
-│   └── seed.py         # Database seeder
-├── frontend/
-│   └── src/
-│       ├── App.jsx
-│       └── components/
-│           ├── ChatWindow.jsx
-│           └── ChatInput.jsx
-└── README.md
