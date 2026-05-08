@@ -1,54 +1,68 @@
-import re
+import spacy
 
-# Knowledge base - static responses
+nlp = spacy.load("en_core_web_sm")
+
 INTENTS = {
     "greeting": {
-        "patterns": ["hi", "hello", "hey", "good morning", "good evening"],
-        "response": "Hello! Welcome to the Travel Assistant. How can I help you today?"
+        "keywords": ["hi", "hello", "hey", "morning", "evening", "greet"],
+        "response": "Hello! Welcome to the Travel Assistant. How can I help you today? 🌍"
     },
     "packages": {
-        "patterns": ["packages", "offers", "deals", "tours", "what do you offer"],
-        "response": "We offer 3 exciting packages: 1) Kandy Tour 2) Ella Adventure 3) Sigiriya Explorer. Which one interests you?"
+        "keywords": ["package", "offer", "deal", "tour", "option", "available"],
+        "response": "We offer 3 exciting packages:\n1) Kandy Tour - $150\n2) Ella Adventure - $120\n3) Sigiriya Explorer - $130\nWhich one interests you?"
     },
     "kandy": {
-        "patterns": ["kandy", "tell me about kandy", "kandy package"],
-        "response": "The Kandy package includes: Hotel stay (3 nights), Temple of the Tooth visit, Kandy Lake walk, and transport. Price: $150"
+        "keywords": ["kandy", "tooth", "lake"],
+        "response": "The Kandy package includes:\n- 3 nights hotel stay\n- Temple of the Tooth visit\n- Kandy Lake walk\n- Transport included\nPrice: $150 per person"
     },
     "ella": {
-        "patterns": ["ella", "tell me about ella", "ella package"],
-        "response": "The Ella package includes: Hotel stay (2 nights), Nine Arch Bridge visit, Little Adam's Peak hike, and transport. Price: $120"
+        "keywords": ["ella", "arch", "bridge", "adam", "peak", "hike"],
+        "response": "The Ella package includes:\n- 2 nights hotel stay\n- Nine Arch Bridge visit\n- Little Adam's Peak hike\n- Transport included\nPrice: $120 per person"
     },
     "sigiriya": {
-        "patterns": ["sigiriya", "tell me about sigiriya", "sigiriya package"],
-        "response": "The Sigiriya package includes: Hotel stay (2 nights), Sigiriya Rock Fortress climb, Dambulla Cave Temple, and transport. Price: $130"
+        "keywords": ["sigiriya", "rock", "fortress", "dambulla", "cave"],
+        "response": "The Sigiriya package includes:\n- 2 nights hotel stay\n- Sigiriya Rock Fortress climb\n- Dambulla Cave Temple\n- Transport included\nPrice: $130 per person"
     },
     "price": {
-        "patterns": ["price", "cost", "how much", "fee", "charge"],
-        "response": "Our packages start from $120. Kandy: $150, Ella: $120, Sigiriya: $130. Would you like more details on any package?"
+        "keywords": ["price", "cost", "much", "fee", "charge", "expensive", "cheap", "afford"],
+        "response": "Our packages start from $120:\n- Kandy: $150\n- Ella: $120\n- Sigiriya: $130\nAll prices include hotel and transport. Would you like to book one?"
     },
     "booking": {
-        "patterns": ["book", "reserve", "booking", "i want to go", "sign up"],
-        "response": "Great choice! To book a package, please provide your name, email, and preferred travel date. Our team will contact you within 24 hours."
+        "keywords": ["book", "reserve", "booking", "sign", "register", "want", "go", "travel"],
+        "response": "Great choice! To book a package, please provide:\n- Your full name\n- Email address\n- Preferred travel date\nOur team will contact you within 24 hours! ✈️"
     },
     "goodbye": {
-        "patterns": ["bye", "goodbye", "see you", "thanks", "thank you"],
+        "keywords": ["bye", "goodbye", "see", "thanks", "thank", "appreciate"],
         "response": "Thank you for visiting! Have a wonderful trip. Goodbye! 👋"
     }
 }
 
-def preprocess(text: str) -> str:
-    return text.lower().strip()
+def preprocess(text: str):
+    doc = nlp(text.lower())
+    # Lemmatize and remove stopwords/punctuation
+    tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
+    return tokens
 
 def detect_intent(text: str) -> str:
-    text = preprocess(text)
+    tokens = preprocess(text)
+    scores = {}
+
     for intent, data in INTENTS.items():
-        for pattern in data["patterns"]:
-            if pattern in text:
-                return intent
-    return "unknown"
+        score = 0
+        for token in tokens:
+            if token in data["keywords"]:
+                score += 1
+        if score > 0:
+            scores[intent] = score
+
+    if not scores:
+        return "unknown"
+
+    # Return intent with highest score
+    return max(scores, key=scores.get)
 
 def get_response(message: str) -> str:
     intent = detect_intent(message)
     if intent == "unknown":
-        return "I'm sorry, I didn't understand that. You can ask me about our travel packages, prices, or bookings!"
+        return "I'm sorry, I didn't understand that. You can ask me about our travel packages, prices, or bookings! 😊"
     return INTENTS[intent]["response"]
