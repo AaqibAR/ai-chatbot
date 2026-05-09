@@ -5,41 +5,50 @@ nlp = spacy.load("en_core_web_sm")
 INTENTS = {
     "greeting": {
         "keywords": ["hi", "hello", "hey", "morning", "evening", "greet"],
-        "response": "Hello! Welcome to the Travel Assistant. How can I help you today? 🌍"
+        "response": None
     },
     "packages": {
         "keywords": ["package", "offer", "deal", "tour", "option", "available"],
-        "response": "We offer 3 exciting packages:\n1) Kandy Tour - $150\n2) Ella Adventure - $120\n3) Sigiriya Explorer - $130\nWhich one interests you?"
+        "response": None
     },
     "kandy": {
         "keywords": ["kandy", "tooth", "lake"],
-        "response": "The Kandy package includes:\n- 3 nights hotel stay\n- Temple of the Tooth visit\n- Kandy Lake walk\n- Transport included\nPrice: $150 per person"
+        "response": None
     },
     "ella": {
         "keywords": ["ella", "arch", "bridge", "adam", "peak", "hike"],
-        "response": "The Ella package includes:\n- 2 nights hotel stay\n- Nine Arch Bridge visit\n- Little Adam's Peak hike\n- Transport included\nPrice: $120 per person"
+        "response": None
     },
     "sigiriya": {
         "keywords": ["sigiriya", "rock", "fortress", "dambulla", "cave"],
-        "response": "The Sigiriya package includes:\n- 2 nights hotel stay\n- Sigiriya Rock Fortress climb\n- Dambulla Cave Temple\n- Transport included\nPrice: $130 per person"
+        "response": None
     },
     "price": {
         "keywords": ["price", "cost", "much", "fee", "charge", "expensive", "cheap", "afford"],
-        "response": "Our packages start from $120:\n- Kandy: $150\n- Ella: $120\n- Sigiriya: $130\nAll prices include hotel and transport. Would you like to book one?"
+        "response": None
     },
     "booking": {
         "keywords": ["book", "reserve", "booking", "sign", "register", "want", "go", "travel"],
-        "response": "Great choice! To book a package, please provide:\n- Your full name\n- Email address\n- Preferred travel date\nOur team will contact you within 24 hours! ✈️"
+        "response": None
+    },
+    "faq": {
+        "keywords": ["faq", "question", "cancel", "cancellation", "discount", "group", "include", "policy"],
+        "response": None
     },
     "goodbye": {
         "keywords": ["bye", "goodbye", "see", "thanks", "thank", "appreciate"],
-        "response": "Thank you for visiting! Have a wonderful trip. Goodbye! 👋"
+        "response": None
     }
+}
+
+STATIC_RESPONSES = {
+    "greeting": "Hello! Welcome to the Travel Assistant. How can I help you today? 🌍",
+    "goodbye": "Thank you for visiting! Have a wonderful trip. Goodbye! 👋",
+    "booking": "Great choice! To book a package, please provide:\n- Your full name\n- Email address\n- Preferred travel date\nOur team will contact you within 24 hours! ✈️",
 }
 
 def preprocess(text: str):
     doc = nlp(text.lower())
-    # Lemmatize and remove stopwords/punctuation
     tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
     return tokens
 
@@ -58,11 +67,42 @@ def detect_intent(text: str) -> str:
     if not scores:
         return "unknown"
 
-    # Return intent with highest score
     return max(scores, key=scores.get)
 
-def get_response(message: str) -> str:
+def get_response(message: str, db) -> str:
     intent = detect_intent(message)
-    if intent == "unknown":
-        return "I'm sorry, I didn't understand that. You can ask me about our travel packages, prices, or bookings! 😊"
-    return INTENTS[intent]["response"]
+
+    # Static responses
+    if intent in STATIC_RESPONSES:
+        return STATIC_RESPONSES[intent]
+
+    # Dynamic responses from database
+    if intent == "packages":
+        packages = db.query(__import__('models').Package).all()
+        if packages:
+            pkg_list = "\n".join([f"- {p.name}: ${p.price} ({p.location})" for p in packages])
+            return f"We offer the following packages:\n{pkg_list}\n\nWhich one interests you?"
+
+    if intent in ["kandy", "ella", "sigiriya"]:
+        from models import Package
+        package = db.query(Package).filter(
+            Package.location.ilike(f"%{intent}%")
+        ).first()
+        if package:
+            return f"**{package.name}**\n{package.description}\nPrice: ${package.price} per person"
+
+    if intent == "price":
+        from models import Package
+        packages = db.query(Package).all()
+        if packages:
+            price_list = "\n".join([f"- {p.name}: ${p.price}" for p in packages])
+            return f"Our package prices:\n{price_list}\n\nAll prices include hotel and transport!"
+
+    if intent == "faq":
+        from models import FAQ
+        faqs = db.query(FAQ).limit(3).all()
+        if faqs:
+            faq_list = "\n\n".join([f"Q: {f.question}\nA: {f.answer}" for f in faqs])
+            return f"Here are some frequently asked questions:\n\n{faq_list}"
+
+    return "I'm sorry, I didn't understand that. You can ask me about our travel packages, prices, or bookings! 😊"
