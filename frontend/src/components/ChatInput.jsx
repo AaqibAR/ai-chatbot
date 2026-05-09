@@ -11,22 +11,19 @@ function ChatInput({ onSend, loading }) {
     }
   }
 
-  const handleKey = (e) => {
-    if (e.key === "Enter") handleSend()
-  }
-
   return (
-    <div className="chat-input">
+    <div className="chat-input-wrap">
       <input
         type="text"
-        placeholder="Type a message..."
+        className="chat-input"
+        placeholder="Ask about packages, prices, bookings..."
         value={text}
         onChange={e => setText(e.target.value)}
-        onKeyDown={handleKey}
+        onKeyDown={e => e.key === "Enter" && handleSend()}
         disabled={loading}
       />
-      <button onClick={handleSend} disabled={loading}>
-        Send ➤
+      <button className="send-btn" onClick={handleSend} disabled={loading}>
+        ➤
       </button>
     </div>
   )
