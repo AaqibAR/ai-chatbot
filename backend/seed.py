@@ -11,9 +11,9 @@ db.query(FAQ).delete()
 
 # Seed packages
 packages = [
-    Package(name="Kandy Tour", description="Visit the Temple of the Tooth, Kandy Lake, and enjoy the cultural heart of Sri Lanka.", price=150.00, location="Kandy"),
-    Package(name="Ella Adventure", description="Hike Little Adam's Peak, visit Nine Arch Bridge, and enjoy stunning mountain views.", price=120.00, location="Ella"),
-    Package(name="Sigiriya Explorer", description="Climb the famous Sigiriya Rock Fortress and visit the Dambulla Cave Temple.", price=130.00, location="Sigiriya"),
+    Package(name="Kandy Tour", description="Visit the Temple of the Tooth, Kandy Lake, and enjoy the cultural heart of Sri Lanka.", price=15000.00, location="Kandy"),
+    Package(name="Ella Adventure", description="Hike Little Adam's Peak, visit Nine Arch Bridge, and enjoy stunning mountain views.", price=12000.00, location="Ella"),
+    Package(name="Sigiriya Explorer", description="Climb the famous Sigiriya Rock Fortress and visit the Dambulla Cave Temple.", price=13000.00, location="Sigiriya"),
 ]
 
 # Seed FAQs

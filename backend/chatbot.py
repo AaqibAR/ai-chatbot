@@ -80,7 +80,7 @@ def get_response(message: str, db) -> str:
     if intent == "packages":
         packages = db.query(__import__('models').Package).all()
         if packages:
-            pkg_list = "\n".join([f"- {p.name}: ${p.price} ({p.location})" for p in packages])
+            pkg_list = "\n".join([f"- {p.name}: LKR {p.price} ({p.location})" for p in packages])
             return f"We offer the following packages:\n{pkg_list}\n\nWhich one interests you?"
 
     if intent in ["kandy", "ella", "sigiriya"]:
@@ -89,13 +89,13 @@ def get_response(message: str, db) -> str:
             Package.location.ilike(f"%{intent}%")
         ).first()
         if package:
-            return f"**{package.name}**\n{package.description}\nPrice: ${package.price} per person"
+            return f"**{package.name}**\n{package.description}\nPrice: LKR {package.price} per person"
 
     if intent == "price":
         from models import Package
         packages = db.query(Package).all()
         if packages:
-            price_list = "\n".join([f"- {p.name}: ${p.price}" for p in packages])
+            price_list = "\n".join([f"- {p.name}: LKR {p.price}" for p in packages])
             return f"Our package prices:\n{price_list}\n\nAll prices include hotel and transport!"
 
     if intent == "faq":
