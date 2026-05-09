@@ -1,4 +1,5 @@
 import spacy
+from sqlalchemy.orm import Session
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -47,6 +48,8 @@ STATIC_RESPONSES = {
     "booking": "Great choice! To book a package, please provide:\n- Your full name\n- Email address\n- Preferred travel date\nOur team will contact you within 24 hours! ✈️",
 }
 
+AUTO_LEARN_THRESHOLD = 3  # Auto-learn after 3 repeated unknown queries
+
 def preprocess(text: str):
     doc = nlp(text.lower())
     tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
@@ -55,30 +58,92 @@ def preprocess(text: str):
 def detect_intent(text: str) -> str:
     tokens = preprocess(text)
     scores = {}
-
     for intent, data in INTENTS.items():
-        score = 0
-        for token in tokens:
-            if token in data["keywords"]:
-                score += 1
+        score = sum(1 for token in tokens if token in data["keywords"])
         if score > 0:
             scores[intent] = score
+    return max(scores, key=scores.get) if scores else "unknown"
 
-    if not scores:
-        return "unknown"
+def find_similar_faq(message: str, db: Session):
+    """Use spaCy similarity to find matching FAQ"""
+    from models import FAQ
+    doc1 = nlp(message.lower())
+    faqs = db.query(FAQ).all()
+    best_match = None
+    best_score = 0.0
+    for faq in faqs:
+        doc2 = nlp(faq.question.lower())
+        if doc1.has_vector and doc2.has_vector:
+            score = doc1.similarity(doc2)
+            if score > best_score:
+                best_score = score
+                best_match = faq
+    # Only return if similarity is high enough
+    if best_score > 0.6 and best_match:
+        return best_match.answer
+    return None
 
-    return max(scores, key=scores.get)
+def auto_generate_response(user_input: str) -> str:
+    """Auto-generate a basic response for frequently asked unknown queries"""
+    tokens = preprocess(user_input)
+    if any(t in tokens for t in ["hotel", "stay", "accommodation"]):
+        return "All our packages include comfortable hotel accommodations. Prices vary by package and duration."
+    if any(t in tokens for t in ["food", "meal", "eat", "restaurant"]):
+        return "Sri Lanka offers amazing local cuisine! Most tour packages include breakfast. Local restaurants are available for other meals."
+    if any(t in tokens for t in ["weather", "climate", "rain", "season"]):
+        return "Sri Lanka has a tropical climate. Best time to visit is December-March for the west coast and May-September for the east coast."
+    if any(t in tokens for t in ["visa", "passport", "entry"]):
+        return "Most nationalities can obtain a Sri Lanka e-visa online before arrival. Visit www.eta.gov.lk for details."
+    if any(t in tokens for t in ["transport", "bus", "train", "flight"]):
+        return "All our packages include transport between destinations. Domestic flights and trains are also available."
+    return None
 
-def get_response(message: str, db) -> str:
+def handle_unknown(message: str, db: Session) -> str:
+    """Save unknown query and auto-learn if frequency threshold is reached"""
+    from models import UnknownQuery, FAQ
+
+    # Check if this question was asked before
+    existing = db.query(UnknownQuery).filter(
+        UnknownQuery.user_input.ilike(f"%{message[:30]}%"),
+        UnknownQuery.resolved == 0
+    ).first()
+
+    if existing:
+        existing.frequency += 1
+
+        # Auto-learn if threshold reached
+        if existing.frequency >= AUTO_LEARN_THRESHOLD:
+            auto_answer = auto_generate_response(message)
+            if auto_answer:
+                # Add to FAQ knowledge base automatically
+                new_faq = FAQ(
+                    question=existing.user_input,
+                    answer=auto_answer
+                )
+                db.add(new_faq)
+                existing.resolved = 1
+                existing.suggested_answer = auto_answer
+                db.commit()
+                return auto_answer
+    else:
+        # First time seeing this question
+        new_unknown = UnknownQuery(user_input=message)
+        db.add(new_unknown)
+
+    db.commit()
+    return "I'm sorry, I didn't understand that. Your question has been saved and I'll learn from it! 😊"
+
+def get_response(message: str, db: Session) -> str:
     intent = detect_intent(message)
 
-    # Static responses
+    # 1. Static responses first
     if intent in STATIC_RESPONSES:
         return STATIC_RESPONSES[intent]
 
-    # Dynamic responses from database
+    # 2. Dynamic DB responses
     if intent == "packages":
-        packages = db.query(__import__('models').Package).all()
+        from models import Package
+        packages = db.query(Package).all()
         if packages:
             pkg_list = "\n".join([f"- {p.name}: LKR {p.price} ({p.location})" for p in packages])
             return f"We offer the following packages:\n{pkg_list}\n\nWhich one interests you?"
@@ -89,7 +154,7 @@ def get_response(message: str, db) -> str:
             Package.location.ilike(f"%{intent}%")
         ).first()
         if package:
-            return f"**{package.name}**\n{package.description}\nPrice: LKR {package.price} per person"
+            return f"{package.name}\n{package.description}\nPrice: LKR {package.price} per person"
 
     if intent == "price":
         from models import Package
@@ -105,18 +170,10 @@ def get_response(message: str, db) -> str:
             faq_list = "\n\n".join([f"Q: {f.question}\nA: {f.answer}" for f in faqs])
             return f"Here are some frequently asked questions:\n\n{faq_list}"
 
-    # Search FAQs in database for any match
-    from models import FAQ
-    all_faqs = db.query(FAQ).all()
-    for faq in all_faqs:
-        faq_tokens = preprocess(faq.question)
-        for token in tokens:
-            if token in faq_tokens:
-                return faq.answer
+    # 3. Search FAQs using spaCy similarity (learned responses)
+    faq_match = find_similar_faq(message, db)
+    if faq_match:
+        return faq_match
 
-    # Save unknown query for learning
-    unknown = __import__('models').UnknownQuery(user_input=message)
-    db.add(unknown)
-    db.commit()
-
-    return "I'm sorry, I didn't understand that. Your question has been saved and we'll improve our responses! 😊"
+    # 4. Handle unknown - save and auto-learn
+    return handle_unknown(message, db)

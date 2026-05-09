@@ -28,5 +28,6 @@ class UnknownQuery(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_input = Column(Text)
     suggested_answer = Column(Text, nullable=True)
+    frequency = Column(Integer, default=1)
     resolved = Column(Integer, default=0)
     timestamp = Column(DateTime, default=func.now())

@@ -74,3 +74,11 @@ def learn(data: dict, db: Session = Depends(get_db)):
 
     db.commit()
     return {"message": "Bot has learned a new response!"}
+
+@app.get("/unknown-queries")
+def get_unknown_queries(db: Session = Depends(get_db)):
+    return db.query(UnknownQuery).filter(UnknownQuery.resolved == 0).all()
+
+@app.get("/auto-learned")
+def get_auto_learned(db: Session = Depends(get_db)):
+    return db.query(UnknownQuery).filter(UnknownQuery.resolved == 1).all()
