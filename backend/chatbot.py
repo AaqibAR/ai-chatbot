@@ -105,4 +105,18 @@ def get_response(message: str, db) -> str:
             faq_list = "\n\n".join([f"Q: {f.question}\nA: {f.answer}" for f in faqs])
             return f"Here are some frequently asked questions:\n\n{faq_list}"
 
-    return "I'm sorry, I didn't understand that. You can ask me about our travel packages, prices, or bookings! 😊"
+    # Search FAQs in database for any match
+    from models import FAQ
+    all_faqs = db.query(FAQ).all()
+    for faq in all_faqs:
+        faq_tokens = preprocess(faq.question)
+        for token in tokens:
+            if token in faq_tokens:
+                return faq.answer
+
+    # Save unknown query for learning
+    unknown = __import__('models').UnknownQuery(user_input=message)
+    db.add(unknown)
+    db.commit()
+
+    return "I'm sorry, I didn't understand that. Your question has been saved and we'll improve our responses! 😊"

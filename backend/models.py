@@ -22,3 +22,11 @@ class Conversation(Base):
     user_input = Column(Text)
     bot_response = Column(Text)
     timestamp = Column(DateTime, default=func.now())
+
+class UnknownQuery(Base):
+    __tablename__ = "unknown_queries"
+    id = Column(Integer, primary_key=True, index=True)
+    user_input = Column(Text)
+    suggested_answer = Column(Text, nullable=True)
+    resolved = Column(Integer, default=0)
+    timestamp = Column(DateTime, default=func.now())

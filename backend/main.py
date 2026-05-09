@@ -49,3 +49,28 @@ def get_faqs(db: Session = Depends(get_db)):
 def get_conversations(db: Session = Depends(get_db)):
     conversations = db.query(Conversation).order_by(Conversation.timestamp.desc()).limit(50).all()
     return conversations
+
+from models import UnknownQuery
+
+@app.get("/unknown-queries")
+def get_unknown_queries(db: Session = Depends(get_db)):
+    return db.query(UnknownQuery).filter(UnknownQuery.resolved == 0).all()
+
+@app.post("/learn")
+def learn(data: dict, db: Session = Depends(get_db)):
+    query_id = data.get("id")
+    answer = data.get("answer")
+    question = data.get("question")
+
+    # Save as new FAQ so bot learns it
+    new_faq = FAQ(question=question, answer=answer)
+    db.add(new_faq)
+
+    # Mark unknown query as resolved
+    unknown = db.query(UnknownQuery).filter(UnknownQuery.id == query_id).first()
+    if unknown:
+        unknown.resolved = 1
+        unknown.suggested_answer = answer
+
+    db.commit()
+    return {"message": "Bot has learned a new response!"}
