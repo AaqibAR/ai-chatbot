@@ -20,7 +20,7 @@ packages = [
 faqs = [
     FAQ(question="What is included in the packages?", answer="All packages include hotel stay, transport, and guided tours."),
     FAQ(question="How do I book a package?", answer="Provide your name, email and preferred date. Our team will contact you within 24 hours."),
-    FAQ(question="What is the cheapest package?", answer="The Ella Adventure package is our most affordable at $120 per person."),
+    FAQ(question="What is the cheapest package?", answer="The Ella Adventure package is our most affordable at LKR 12000 per person."),
     FAQ(question="Do you offer group discounts?", answer="Yes! Groups of 5 or more receive a 10% discount on all packages."),
     FAQ(question="What is the cancellation policy?", answer="Free cancellation up to 7 days before travel. 50% refund within 3-7 days."),
 ]
