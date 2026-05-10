@@ -27,7 +27,7 @@ function KnowledgeBase() {
       setNewQ("")
       setNewA("")
       fetchFaqs()
-    } catch (e) {
+    } catch {
       alert("Failed to add FAQ.")
     } finally {
       setAdding(false)
