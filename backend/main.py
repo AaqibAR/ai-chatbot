@@ -62,15 +62,14 @@ def learn(data: dict, db: Session = Depends(get_db)):
     answer = data.get("answer")
     question = data.get("question")
 
-    # Save as new FAQ so bot learns it
     new_faq = FAQ(question=question, answer=answer)
     db.add(new_faq)
 
-    # Mark unknown query as resolved
-    unknown = db.query(UnknownQuery).filter(UnknownQuery.id == query_id).first()
-    if unknown:
-        unknown.resolved = 1
-        unknown.suggested_answer = answer
+    if query_id:
+        unknown = db.query(UnknownQuery).filter(UnknownQuery.id == query_id).first()
+        if unknown:
+            unknown.resolved = 1
+            unknown.suggested_answer = answer
 
     db.commit()
     return {"message": "Bot has learned a new response!"}
