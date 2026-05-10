@@ -34,8 +34,8 @@ INTENTS = {
         "response": None
     },
     "faq": {
-        "keywords": ["faq", "question", "cancel", "cancellation", "discount", "group", "include", "policy"],
-        "response": None
+    "keywords": ["faq", "faqs", "show", "question", "cancel", "cancellation", "discount", "group", "include", "policy"],
+    "response": None
     },
     "goodbye": {
         "keywords": ["bye", "goodbye", "see", "thanks", "thank", "appreciate"],

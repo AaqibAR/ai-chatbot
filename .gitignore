@@ -6,7 +6,6 @@ backend/__pycache__/
 venv/
 
 # Environment
-.env
 
 # Node
 node_modules/
@@ -14,3 +13,4 @@ dist/
 
 # Mac
 .DS_Store
+config.bat
