@@ -1,4 +1,5 @@
 import spacy
+import re
 from sqlalchemy.orm import Session
 
 nlp = spacy.load("en_core_web_sm")
@@ -48,7 +49,7 @@ STATIC_RESPONSES = {
     "booking": "Great choice! Please provide the following details:\n- Your full name\n- Email address\n- Preferred travel date\n- Package of choice (Kandy, Ella, or Sigiriya)\n\nOnce submitted, we will review your details and contact you within 24 hours to confirm your booking! ✈️",
 }
 
-AUTO_LEARN_THRESHOLD = 3  # Auto-learn after 3 repeated unknown queries
+AUTO_LEARN_THRESHOLD = 3
 
 def preprocess(text: str):
     doc = nlp(text.lower())
@@ -65,7 +66,6 @@ def detect_intent(text: str) -> str:
     return max(scores, key=scores.get) if scores else "unknown"
 
 def find_similar_faq(message: str, db: Session):
-    """Use spaCy similarity to find matching FAQ"""
     from models import FAQ
     doc1 = nlp(message.lower())
     faqs = db.query(FAQ).all()
@@ -78,13 +78,11 @@ def find_similar_faq(message: str, db: Session):
             if score > best_score:
                 best_score = score
                 best_match = faq
-    # Only return if similarity is high enough
     if best_score > 0.6 and best_match:
         return best_match.answer
     return None
 
 def auto_generate_response(user_input: str) -> str:
-    """Auto-generate a basic response for frequently asked unknown queries"""
     tokens = preprocess(user_input)
     if any(t in tokens for t in ["hotel", "stay", "accommodation"]):
         return "All our packages include comfortable hotel accommodations. Prices vary by package and duration."
@@ -101,17 +99,6 @@ def auto_generate_response(user_input: str) -> str:
 def handle_unknown(message: str, db: Session) -> str:
     from models import UnknownQuery, FAQ
 
-    # Check if message looks like booking details (name/email pattern)
-    import re
-    if re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message) or \
-       (len(message.split()) >= 2 and any(c.isupper() for c in message)):
-        return "Thank you! We have received your details. Our team will contact you within 24 hours to confirm your booking. We look forward to making your Sri Lanka trip memorable! 🌴✈️"
-
-def handle_unknown(message: str, db: Session) -> str:
-    """Save unknown query and auto-learn if frequency threshold is reached"""
-    from models import UnknownQuery, FAQ
-
-    # Check if this question was asked before
     existing = db.query(UnknownQuery).filter(
         UnknownQuery.user_input.ilike(f"%{message[:30]}%"),
         UnknownQuery.resolved == 0
@@ -119,12 +106,9 @@ def handle_unknown(message: str, db: Session) -> str:
 
     if existing:
         existing.frequency += 1
-
-        # Auto-learn if threshold reached
         if existing.frequency >= AUTO_LEARN_THRESHOLD:
             auto_answer = auto_generate_response(message)
             if auto_answer:
-                # Add to FAQ knowledge base automatically
                 new_faq = FAQ(
                     question=existing.user_input,
                     answer=auto_answer
@@ -135,7 +119,6 @@ def handle_unknown(message: str, db: Session) -> str:
                 db.commit()
                 return auto_answer
     else:
-        # First time seeing this question
         new_unknown = UnknownQuery(user_input=message)
         db.add(new_unknown)
 
@@ -149,7 +132,18 @@ def get_response(message: str, db: Session) -> str:
     if intent in STATIC_RESPONSES:
         return STATIC_RESPONSES[intent]
 
-    # 2. Dynamic DB responses
+    # 2. Check if message looks like booking details
+    has_email = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message)
+    has_date = re.search(r'\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}', message)
+    line_count = len([l for l in message.strip().split('\n') if l.strip()])
+    if has_email or has_date or line_count >= 3:
+        return "Thank you! We have received your booking details successfully. Our team will contact you within 24 hours to confirm your reservation. We look forward to making your Sri Lanka trip memorable! 🌴✈️"
+
+    # 3. Handle casual follow-up responses
+    if message.lower().strip() in ["okay", "ok", "sure", "alright", "great", "noted", "fine", "got it"]:
+        return "You're welcome! Feel free to ask if you have any more questions. We look forward to your visit! 😊"
+
+    # 4. Dynamic DB responses
     if intent == "packages":
         from models import Package
         packages = db.query(Package).all()
@@ -179,10 +173,10 @@ def get_response(message: str, db: Session) -> str:
             faq_list = "\n\n".join([f"Q: {f.question}\nA: {f.answer}" for f in faqs])
             return f"Here are some frequently asked questions:\n\n{faq_list}"
 
-    # 3. Search FAQs using spaCy similarity (learned responses)
+    # 5. Search FAQs using spaCy similarity
     faq_match = find_similar_faq(message, db)
     if faq_match:
         return faq_match
 
-    # 4. Handle unknown - save and auto-learn
+    # 6. Handle unknown - save and auto-learn
     return handle_unknown(message, db)
