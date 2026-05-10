@@ -18,6 +18,10 @@
   outline: none;
   font-family: 'Segoe UI', sans-serif;
   transition: border-color 0.15s;
+  resize: none;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .chat-input:focus { border-color: #1D9E75; }
@@ -42,3 +46,4 @@
 
 .send-btn:hover { background: #0F6E56; }
 .send-btn:disabled { background: rgba(255,255,255,0.1); cursor: not-allowed; }
+

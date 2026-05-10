@@ -45,7 +45,7 @@ INTENTS = {
 STATIC_RESPONSES = {
     "greeting": "Hello! Welcome to the Travel Assistant. How can I help you today? 🌍",
     "goodbye": "Thank you for visiting! Have a wonderful trip. Goodbye! 👋",
-    "booking": "Great choice! To book a package, please provide:\n- Your full name\n- Email address\n- Preferred travel date\nOur team will contact you within 24 hours! ✈️",
+    "booking": "Great choice! Please provide the following details:\n- Your full name\n- Email address\n- Preferred travel date\n- Package of choice (Kandy, Ella, or Sigiriya)\n\nOnce submitted, we will review your details and contact you within 24 hours to confirm your booking! ✈️",
 }
 
 AUTO_LEARN_THRESHOLD = 3  # Auto-learn after 3 repeated unknown queries
@@ -97,6 +97,15 @@ def auto_generate_response(user_input: str) -> str:
     if any(t in tokens for t in ["transport", "bus", "train", "flight"]):
         return "All our packages include transport between destinations. Domestic flights and trains are also available."
     return None
+
+def handle_unknown(message: str, db: Session) -> str:
+    from models import UnknownQuery, FAQ
+
+    # Check if message looks like booking details (name/email pattern)
+    import re
+    if re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message) or \
+       (len(message.split()) >= 2 and any(c.isupper() for c in message)):
+        return "Thank you! We have received your details. Our team will contact you within 24 hours to confirm your booking. We look forward to making your Sri Lanka trip memorable! 🌴✈️"
 
 def handle_unknown(message: str, db: Session) -> str:
     """Save unknown query and auto-learn if frequency threshold is reached"""

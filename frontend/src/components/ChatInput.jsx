@@ -11,16 +11,23 @@ function ChatInput({ onSend, loading }) {
     }
   }
 
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
   return (
     <div className="chat-input-wrap">
-      <input
-        type="text"
+      <textarea
         className="chat-input"
         placeholder="Ask about packages, prices, bookings..."
         value={text}
         onChange={e => setText(e.target.value)}
-        onKeyDown={e => e.key === "Enter" && handleSend()}
+        onKeyDown={handleKey}
         disabled={loading}
+        rows={1}
       />
       <button className="send-btn" onClick={handleSend} disabled={loading}>
         ➤
