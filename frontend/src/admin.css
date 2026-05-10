@@ -1,11 +1,25 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #13131f;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  overflow: hidden;
+}
 
 .admin-wrap {
   display: flex;
+  width: 100vw;
   height: 100vh;
   color: rgba(255,255,255,0.85);
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .admin-sidebar {
@@ -68,7 +82,13 @@ body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; }
 
 .back-link:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
 
-.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1a1a2e;
+}
 
 .admin-topbar {
   padding: 20px 28px;
@@ -78,7 +98,12 @@ body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; }
 
 .admin-title { font-size: 20px; font-weight: 600; color: #fff; }
 
-.admin-content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+.admin-content { 
+  flex: 1; 
+  overflow-y: auto; 
+  padding: 24px 28px;
+  background: #1a1a2e;
+}
 
 /* Stats */
 .stats-grid {
@@ -267,3 +292,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; }
 }
 
 .admin-link:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.04); }
+
+::-webkit-scrollbar {
+  display: none;
+}
